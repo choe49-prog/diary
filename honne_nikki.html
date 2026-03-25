@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>本音日誌</title>
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="本音日誌">
+<meta name="theme-color" content="#4A7C59">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@300;400;500;600&family=Zen+Kaku+Gothic+New:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --sky-dawn:   #E8F4F8;
+  --sky-mid:    #C9E4EF;
+  --sky-deep:   #7FB5CC;
+  --forest-1:   #4A7C59;
+  --forest-2:   #2E5940;
+  --forest-3:   #1A3D2B;
+  --leaf-light: #A8C5A0;
+  --leaf-pale:  #D4E8D0;
+  --moss:       #6B8F71;
+  --earth:      #8B6F5E;
+  --earth-pale: #D4BFB5;
+  --mist:       rgba(200,225,235,0.55);
+  --ink:        #1C2B22;
+  --ink-mid:    #4A5E52;
+  --ink-soft:   #7A8E82;
+  --ink-faint:  #A8B8AE;
+  --paper:      #F4F8F5;
+  --paper-warm: #EEF5F0;
+  --white:      #FAFCFB;
+  --serif:      'Noto Serif JP', serif;
+  --sans:       'Zen Kaku Gothic New', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--sans);
+  color: var(--ink);
+  min-height: 100vh;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ── Sky background ── */
+.sky-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  background: linear-gradient(
+    170deg,
+    #D6EEF5 0%,
+    #E4F2F8 18%,
+    #EEF8F2 45%,
+    #E8F5EC 70%,
+    #D4EDDB 100%
+  );
+}
+
+/* SVG clouds */
+.clouds {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 280px;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.65;
+}
+
+/* Forest silhouette bottom */
+.forest-floor {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 180px;
+  z-index: -1;
+  pointer-events: none;
+}
+
+/* Light rays */
+.light-rays {
+  position: fixed;
+  top: -40px; left: 30%;
+  width: 600px; height: 500px;
+  z-index: -1;
+  pointer-events: none;
+  background: conic-gradient(
+    from 260deg at 50% 0%,
+    transparent 0deg,
+    rgba(255,255,230,0.06) 8deg,
+    transparent 16deg,
+    rgba(255,255,230,0.05) 24deg,
+    transparent 32deg,
+    rgba(255,255,230,0.07) 40deg,
+    transparent 48deg
+  );
+  animation: rays 18s linear infinite;
+}
+
+@keyframes rays { to { transform: rotate(6deg); } }
+
+/* ── Layout ── */
+.shell {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.topbar {
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(238,248,242,0.72);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(74,124,89,0.1);
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.brand-kanji {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--forest-2);
+  letter-spacing: 0.06em;
+}
+
+.brand-en {
+  font-size: 11px;
+  color: var(--moss);
+  letter-spacing: 0.12em;
+  font-weight: 300;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.date-tag {
+  font-size: 12px;
+  color: var(--ink-mid);
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(74,124,89,0.15);
+  padding: 4px 12px;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+}
+
+.timer-tag {
+  font-size: 12px;
+  color: var(--moss);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.03em;
+}
+
+/* ── Main ── */
+.main {
+  flex: 1;
+  max-width: 620px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 6rem;
+  width: 100%;
+}
+
+/* ── Progress ── */
+.progress {
+  display: flex;
+  align-items: flex-start;
+  gap: 0;
+  margin-bottom: 2.5rem;
+  position: relative;
+}
+
+.progress::after {
+  content: '';
+  position: absolute;
+  top: 13px; left: 13px; right: 13px;
+  height: 1px;
+  background: linear-gradient(to right, var(--leaf-light), rgba(168,197,160,0.3));
+  z-index: 0;
+}
+
+.prog-step {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  z-index: 1;
+  transition: opacity 0.2s;
+}
+
+.prog-dot {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  border: 1.5px solid var(--leaf-light);
+  background: var(--paper);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px;
+  color: var(--ink-faint);
+  transition: all 0.35s cubic-bezier(.34,1.4,.64,1);
+  font-family: var(--serif);
+}
+
+.prog-step.active .prog-dot {
+  background: var(--forest-1);
+  border-color: var(--forest-1);
+  color: #fff;
+  transform: scale(1.15);
+  box-shadow: 0 0 0 5px rgba(74,124,89,0.12), 0 2px 8px rgba(74,124,89,0.2);
+}
+
+.prog-step.done .prog-dot {
+  background: var(--leaf-pale);
+  border-color: var(--leaf-light);
+  color: var(--forest-1);
+  font-size: 12px;
+}
+
+.prog-label {
+  font-size: 10px;
+  color: var(--ink-faint);
+  letter-spacing: 0.06em;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.prog-step.active .prog-label { color: var(--forest-1); font-weight: 500; }
+.prog-step.done  .prog-label { color: var(--moss); }
+
+/* ── Phase heading ── */
+.phase-head {
+  margin-bottom: 1.75rem;
+  animation: fadeSlideIn 0.45s cubic-bezier(.22,1,.36,1) both;
+}
+
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.phase-season {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  color: var(--earth);
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  font-weight: 400;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.phase-season::before {
+  content: '';
+  display: inline-block;
+  width: 20px; height: 1px;
+  background: var(--earth-pale);
+}
+
+.phase-title {
+  font-family: var(--serif);
+  font-size: 24px;
+  font-weight: 500;
+  color: var(--forest-2);
+  line-height: 1.4;
+  margin-bottom: 7px;
+}
+
+.phase-desc {
+  font-size: 13px;
+  color: var(--ink-soft);
+  line-height: 1.85;
+  font-weight: 300;
+}
+
+/* ── Cards ── */
+.card {
+  background: rgba(250,252,251,0.88);
+  border: 1px solid rgba(74,124,89,0.1);
+  border-radius: 18px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  backdrop-filter: blur(8px);
+  transition: box-shadow 0.25s, border-color 0.25s;
+  animation: fadeSlideIn 0.4s cubic-bezier(.22,1,.36,1) both;
+}
+
+.card:focus-within {
+  border-color: rgba(74,124,89,0.25);
+  box-shadow: 0 4px 20px rgba(74,124,89,0.08);
+}
+
+.card-num {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  color: var(--ink-faint);
+  margin-bottom: 5px;
+  font-family: var(--serif);
+}
+
+.card-q {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.65;
+  margin-bottom: 5px;
+}
+
+.card-hint {
+  font-size: 12px;
+  color: var(--ink-faint);
+  line-height: 1.7;
+  margin-bottom: 10px;
+  font-style: italic;
+  font-family: var(--serif);
+  font-weight: 300;
+}
+
+textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.9;
+  color: var(--ink);
+  resize: none;
+  outline: none;
+  min-height: 60px;
+}
+
+textarea::placeholder { color: var(--ink-faint); font-style: italic; }
+
+.divider {
+  border: none;
+  border-top: 1px solid rgba(74,124,89,0.08);
+  margin: 1rem 0;
+}
+
+/* ── Mood chips ── */
+.mood-q {
+  font-size: 14px; font-weight: 500;
+  color: var(--ink); margin-bottom: 10px; line-height: 1.6;
+}
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.chip {
+  padding: 7px 16px;
+  border: 1px solid rgba(74,124,89,0.2);
+  border-radius: 100px;
+  font-size: 13px;
+  color: var(--ink-mid);
+  cursor: pointer;
+  background: rgba(255,255,255,0.6);
+  transition: all 0.2s;
+  font-family: var(--sans);
+  font-weight: 300;
+}
+
+.chip:hover { border-color: var(--forest-1); color: var(--forest-1); background: rgba(212,232,208,0.4); }
+
+.chip.on {
+  background: var(--leaf-pale);
+  border-color: var(--moss);
+  color: var(--forest-2);
+  font-weight: 500;
+}
+
+/* ── Checklist ── */
+.check-row {
+  display: flex; align-items: flex-start;
+  gap: 12px; padding: 11px 0;
+  border-bottom: 1px solid rgba(74,124,89,0.07);
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+.check-row:last-child { border-bottom: none; }
+.check-row:hover { opacity: 0.8; }
+
+.cbox {
+  width: 22px; height: 22px;
+  border: 1.5px solid var(--moss);
+  border-radius: 6px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 1px;
+  transition: all 0.25s cubic-bezier(.34,1.4,.64,1);
+  background: transparent;
+}
+.cbox.on { background: var(--forest-1); border-color: var(--forest-1); transform: scale(1.05); }
+.cmark { opacity: 0; color: #fff; font-size: 12px; transition: opacity 0.15s; }
+.cbox.on .cmark { opacity: 1; }
+.clabel { font-size: 14px; color: var(--ink); line-height: 1.7; transition: all 0.2s; flex: 1; }
+.clabel.done { color: var(--ink-faint); text-decoration: line-through; }
+
+/* ── Score slider ── */
+.score-wrap {
+  display: flex; align-items: center; gap: 16px; padding: 6px 0;
+}
+
+input[type=range] {
+  flex: 1; height: 4px;
+  -webkit-appearance: none; appearance: none;
+  background: linear-gradient(to right, var(--forest-1) 0%, var(--forest-1) var(--p, 70%), rgba(74,124,89,0.15) var(--p, 70%));
+  border-radius: 4px; cursor: pointer; outline: none;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--forest-1);
+  box-shadow: 0 2px 6px rgba(74,124,89,0.3);
+  transition: transform 0.15s;
+}
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.15); }
+
+.score-num {
+  font-family: var(--serif);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--forest-1);
+  min-width: 44px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Buttons ── */
+.btn-row { display: flex; gap: 10px; margin-top: 1.75rem; }
+
+.btn {
+  padding: 11px 22px;
+  border-radius: 100px;
+  font-family: var(--sans);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  letter-spacing: 0.03em;
+  border: 1.5px solid transparent;
+}
+
+.btn-back {
+  background: transparent;
+  border-color: rgba(74,124,89,0.2);
+  color: var(--ink-soft);
+  flex-shrink: 0;
+  width: 48px;
+  padding: 11px;
+  display: flex; align-items: center; justify-content: center;
+}
+.btn-back:hover { border-color: var(--moss); color: var(--moss); }
+
+.btn-next {
+  flex: 1;
+  background: var(--forest-1);
+  color: #fff;
+  font-weight: 500;
+  border-color: var(--forest-1);
+}
+.btn-next:hover { background: var(--forest-2); }
+.btn-next:active { transform: scale(0.98); }
+
+.btn-outline {
+  flex: 1;
+  background: rgba(255,255,255,0.6);
+  border-color: rgba(74,124,89,0.25);
+  color: var(--forest-1);
+}
+.btn-outline:hover { background: var(--leaf-pale); border-color: var(--moss); }
+
+/* ── Sheet setup ── */
+.sheet-panel {
+  background: rgba(255,250,247,0.85);
+  border: 1px solid rgba(139,111,94,0.18);
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  backdrop-filter: blur(6px);
+}
+
+.sheet-head {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13px; font-weight: 500;
+  color: var(--earth); margin-bottom: 6px;
+}
+
+.sheet-desc {
+  font-size: 12px; color: var(--ink-mid);
+  line-height: 1.75; margin-bottom: 10px;
+  font-weight: 300;
+}
+
+.sheet-row { display: flex; gap: 8px; align-items: center; }
+
+.url-input {
+  flex: 1; height: 36px;
+  border: 1px solid rgba(139,111,94,0.25);
+  border-radius: 8px; padding: 0 12px;
+  font-family: var(--sans); font-size: 13px;
+  background: rgba(255,255,255,0.8); color: var(--ink);
+  outline: none; transition: border-color 0.2s;
+}
+.url-input:focus { border-color: var(--earth); }
+.url-input::placeholder { color: var(--ink-faint); }
+
+.btn-test {
+  height: 36px; padding: 0 14px;
+  border-radius: 8px; font-family: var(--sans);
+  font-size: 12px; cursor: pointer;
+  border: 1px solid var(--earth);
+  background: var(--earth); color: #fff;
+  transition: all 0.2s; white-space: nowrap;
+}
+.btn-test:hover { background: #7a5e4f; }
+
+.status { font-size: 11px; margin-top: 6px; }
+.status.ok  { color: var(--forest-1); }
+.status.err { color: #c0392b; }
+
+/* ── Phase visibility ── */
+.phase { display: none; }
+.phase.on { display: block; }
+
+/* ── Complete ── */
+.complete {
+  text-align: center;
+  padding: 1.5rem 0 2rem;
+  animation: fadeSlideIn 0.5s cubic-bezier(.22,1,.36,1) both;
+}
+
+.leaf-icon {
+  margin: 0 auto 1.25rem;
+  width: 70px; height: 70px;
+}
+
+.complete-title {
+  font-family: var(--serif);
+  font-size: 24px; font-weight: 500;
+  color: var(--forest-2); margin-bottom: 8px;
+}
+
+.complete-sub {
+  font-size: 14px; color: var(--ink-soft);
+  line-height: 1.95; margin-bottom: 1.75rem;
+  font-weight: 300;
+}
+
+.streak-row {
+  display: flex; justify-content: center;
+  flex-wrap: wrap; gap: 5px; margin-bottom: 6px;
+}
+
+.sdot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: rgba(74,124,89,0.15);
+  transition: background 0.4s;
+}
+.sdot.on { background: var(--forest-1); }
+
+.streak-label {
+  font-size: 12px; color: var(--ink-faint); margin-bottom: 1.5rem;
+  font-family: var(--serif);
+}
+
+.sheet-ok {
+  background: rgba(212,232,208,0.5);
+  border: 1px solid rgba(74,124,89,0.18);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 13px; color: var(--forest-1);
+  margin-bottom: 1.5rem;
+}
+
+.action-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.action-btn {
+  background: rgba(250,252,251,0.88);
+  border: 1px solid rgba(74,124,89,0.15);
+  border-radius: 14px; padding: 1rem;
+  text-align: left; cursor: pointer;
+  transition: all 0.2s; font-family: var(--sans);
+}
+.action-btn:hover { border-color: var(--moss); box-shadow: 0 3px 12px rgba(74,124,89,0.1); }
+
+.action-icon { font-size: 20px; margin-bottom: 6px; }
+.action-text { font-size: 12px; color: var(--ink-mid); line-height: 1.55; }
+
+/* ── Section badge ── */
+.section-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--forest-2);
+  background: var(--leaf-pale);
+  border-radius: 20px;
+  padding: 3px 10px;
+  margin-bottom: 8px;
+  letter-spacing: 0.04em;
+}
+
+/* ── Affirm display ── */
+.affirm-display {
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, rgba(74,124,89,0.08), rgba(168,197,160,0.15));
+  border-radius: 12px;
+  border: 1px solid rgba(74,124,89,0.15);
+  text-align: center;
+}
+.affirm-text {
+  font-family: var(--serif);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--forest-2);
+  letter-spacing: 0.06em;
+  line-height: 1.6;
+}
+
+/* ── Tsuite examples ── */
+.tsuite-examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.eg-chip {
+  font-size: 11px;
+  color: var(--ink-soft);
+  background: var(--paper-warm);
+  border: 1px dashed rgba(74,124,89,0.2);
+  border-radius: 20px;
+  padding: 3px 10px;
+}
+
+/* ── Reframe convert ── */
+.convert-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.convert-box { flex: 1; }
+.convert-label {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--ink-faint);
+  margin-bottom: 5px;
+}
+.convert-arrow {
+  font-size: 18px;
+  color: var(--leaf-light);
+  padding-top: 20px;
+  flex-shrink: 0;
+}
+
+/* ── Did rows ── */
+.did-rows { display: flex; flex-direction: column; gap: 8px; }
+.did-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.did-num {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: var(--leaf-pale);
+  color: var(--forest-1);
+  font-size: 12px;
+  font-weight: 500;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-family: var(--serif);
+}
+.did-input {
+  flex: 1;
+  height: 36px;
+  border: 1px solid rgba(74,124,89,0.15);
+  border-radius: 8px;
+  padding: 0 12px;
+  font-family: var(--sans);
+  font-size: 13px;
+  background: rgba(255,255,255,0.6);
+  color: var(--ink);
+  outline: none;
+  transition: border-color 0.2s;
+}
+.did-input:focus { border-color: var(--moss); }
+.did-input::placeholder { color: var(--ink-faint); font-style: italic; }
+
+/* ── Self-to-self voice letter ── */
+.bf-letter-wrap {
+  background: linear-gradient(150deg, rgba(212,232,208,0.3) 0%, rgba(255,252,248,0.75) 60%, rgba(232,244,248,0.25) 100%);
+  border: 1px solid rgba(74,124,89,0.16);
+  border-radius: 20px;
+  padding: 1.5rem 1.5rem 1.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.bf-letter-wrap::before {
+  content: '';
+  position: absolute;
+  top: -24px; right: -24px;
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  background: rgba(168,197,160,0.15);
+}
+
+.bf-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--moss);
+  margin-bottom: 4px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.bf-hint {
+  font-size: 11px;
+  color: var(--ink-faint);
+  font-style: italic;
+  margin-bottom: 14px;
+  font-family: var(--serif);
+}
+
+.bf-letter { min-height: 80px; }
+
+.bf-loading {
+  display: flex; gap: 6px;
+  align-items: center; padding: 12px 0;
+}
+.bf-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--leaf-light);
+  animation: bfdot 1.2s ease-in-out infinite;
+}
+.bf-dot:nth-child(2) { animation-delay: 0.2s; }
+.bf-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes bfdot {
+  0%,60%,100% { transform: translateY(0); opacity: 0.4; }
+  30%          { transform: translateY(-6px); opacity: 1; }
+}
+
+.bf-text {
+  font-family: var(--serif);
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--forest-2);
+  line-height: 2.1;
+  letter-spacing: 0.03em;
+  white-space: pre-line;
+}
+
+/* 編集エリア */
+.bf-edit-row { margin-top: 12px; }
+.bf-edit-area {
+  width: 100%;
+  font-family: var(--serif);
+  font-size: 15px;
+  line-height: 2;
+  color: var(--forest-2);
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(74,124,89,0.2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  resize: none;
+  outline: none;
+  margin-bottom: 8px;
+}
+.bf-edit-area:focus { border-color: var(--moss); }
+
+.bf-edit-btn {
+  width: 100%;
+  padding: 10px;
+  border-radius: 100px;
+  border: 1.5px solid var(--moss);
+  background: transparent;
+  color: var(--moss);
+  font-family: var(--sans);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.bf-edit-btn:hover { background: var(--leaf-pale); }
+
+.bf-toggle {
+  display: block;
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--ink-faint);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--sans);
+  text-align: left;
+  padding: 0;
+  transition: color 0.2s;
+}
+.bf-toggle:hover { color: var(--moss); }
+
+/* ── Kind chips ── */
+
+/* ── Loading overlay ── */
+.overlay {
+  display: none;
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(238,248,242,0.82);
+  backdrop-filter: blur(10px);
+  flex-direction: column;
+  align-items: center; justify-content: center; gap: 14px;
+}
+.overlay.on { display: flex; }
+.spinner {
+  width: 34px; height: 34px;
+  border: 2px solid rgba(74,124,89,0.2);
+  border-top-color: var(--forest-1);
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.overlay-txt { font-size: 13px; color: var(--ink-mid); }
+</style>
+</head>
+<body>
+
+<!-- Sky background -->
+<div class="sky-bg"></div>
+<div class="light-rays"></div>
+
+<!-- Animated clouds (SVG) -->
+<svg class="clouds" viewBox="0 0 1200 280" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax slice">
+  <style>
+    .cl { fill: rgba(255,255,255,0.55); }
+    .c1 { animation: drift1 28s ease-in-out infinite alternate; }
+    .c2 { animation: drift2 38s ease-in-out infinite alternate; }
+    .c3 { animation: drift3 22s ease-in-out infinite alternate; }
+    @keyframes drift1 { from { transform: translateX(0); } to { transform: translateX(30px); } }
+    @keyframes drift2 { from { transform: translateX(0); } to { transform: translateX(-20px); } }
+    @keyframes drift3 { from { transform: translateX(0); } to { transform: translateX(18px); } }
+  </style>
+  <g class="c1">
+    <ellipse class="cl" cx="160" cy="80" rx="90" ry="34"/>
+    <ellipse class="cl" cx="200" cy="65" rx="55" ry="28"/>
+    <ellipse class="cl" cx="120" cy="70" rx="40" ry="22"/>
+  </g>
+  <g class="c2">
+    <ellipse class="cl" cx="580" cy="55" rx="110" ry="30"/>
+    <ellipse class="cl" cx="620" cy="40" rx="65" ry="24"/>
+    <ellipse class="cl" cx="540" cy="48" rx="50" ry="20"/>
+  </g>
+  <g class="c3">
+    <ellipse class="cl" cx="960" cy="90" rx="80" ry="26"/>
+    <ellipse class="cl" cx="995" cy="75" rx="50" ry="21"/>
+    <ellipse class="cl" cx="930" cy="82" rx="35" ry="17"/>
+  </g>
+</svg>
+
+<!-- Forest silhouette -->
+<svg class="forest-floor" viewBox="0 0 1200 180" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax slice">
+  <path d="M0,180 L0,130 Q30,80 60,110 Q80,60 110,90 Q130,40 160,75 Q190,25 220,65 Q255,10 285,55 Q310,30 340,60 Q375,5 410,50 Q440,20 470,55 Q500,35 530,65 Q565,10 600,50 Q630,25 660,58 Q690,8 720,45 Q755,20 790,55 Q820,30 850,60 Q880,5 910,48 Q940,22 970,55 Q1005,10 1040,50 Q1070,28 1100,60 Q1130,15 1160,48 L1200,55 L1200,180 Z" fill="rgba(46,89,64,0.08)"/>
+  <path d="M0,180 L0,148 Q50,120 90,140 Q130,100 165,130 Q210,88 250,120 Q295,75 340,115 Q385,80 425,118 Q465,85 505,125 Q555,70 600,115 Q645,82 685,120 Q725,88 770,122 Q810,75 850,118 Q895,80 935,120 Q975,88 1015,125 Q1055,72 1095,115 Q1135,82 1165,120 L1200,128 L1200,180 Z" fill="rgba(26,61,43,0.12)"/>
+  <path d="M0,180 L0,162 Q40,148 80,160 Q120,138 160,155 Q205,130 245,152 Q285,140 325,158 Q365,135 405,155 Q445,142 485,162 Q530,128 575,156 Q615,140 655,162 Q698,132 735,155 Q775,142 815,162 Q855,130 895,155 Q935,142 975,165 Q1015,132 1055,158 Q1095,144 1130,162 L1200,168 L1200,180 Z" fill="rgba(26,61,43,0.22)"/>
+</svg>
+
+<div class="shell">
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-kanji">本音日誌</div>
+      <div class="brand-en">HONNE NIKKI</div>
+    </div>
+    <div class="topbar-right">
+      <div class="date-tag" id="dateTxt"></div>
+      <div class="timer-tag" id="timerTxt">0:00</div>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <!-- Progress -->
+    <div class="progress" id="progBar">
+      <div class="prog-step active" data-i="0" onclick="gp(0)">
+        <div class="prog-dot" id="pd0">一</div>
+        <div class="prog-label">チェックイン</div>
+      </div>
+      <div class="prog-step" data-i="1" onclick="gp(1)">
+        <div class="prog-dot" id="pd1">二</div>
+        <div class="prog-label">本音を探る</div>
+      </div>
+      <div class="prog-step" data-i="2" onclick="gp(2)">
+        <div class="prog-dot" id="pd2">三</div>
+        <div class="prog-label">自分を認める</div>
+      </div>
+      <div class="prog-step" data-i="3" onclick="gp(3)">
+        <div class="prog-dot" id="pd3">四</div>
+        <div class="prog-label">クローズ</div>
+      </div>
+    </div>
+
+    <!-- ── PHASE 0: Check-in ── -->
+    <div class="phase on" id="p0">
+      <div class="phase-head">
+        <div class="phase-season">Check-in</div>
+        <div class="phase-title">今、自分はどこにいる？</div>
+        <div class="phase-desc">正解はない。風の向きをたしかめるように、ただ感じているものに気づくだけ。</div>
+      </div>
+
+      <!-- Sheet setup -->
+      <div class="sheet-panel">
+        <div class="sheet-head">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+          Google スプレッドシート連携
+        </div>
+        <div class="sheet-desc">
+          毎日完了時に自動で1行記録されます。<br>Apps Script の Web App URL を貼り付けてください。
+        </div>
+        <div class="sheet-row">
+          <input class="url-input" id="sheetUrl" type="url" placeholder="https://script.google.com/macros/s/...">
+          <button class="btn-test" onclick="testConn()">テスト</button>
+        </div>
+        <div id="connSt" class="status"></div>
+      </div>
+
+      <div class="card">
+        <div class="mood-q">今、体はどんな感じ？</div>
+        <div class="chips" id="bodyC">
+          <button class="chip" onclick="pick(this,'body')">重い</button>
+          <button class="chip" onclick="pick(this,'body')">ざわざわ</button>
+          <button class="chip" onclick="pick(this,'body')">ふつう</button>
+          <button class="chip" onclick="pick(this,'body')">軽い</button>
+          <button class="chip" onclick="pick(this,'body')">あたたかい</button>
+        </div>
+        <hr class="divider">
+        <div class="mood-q">今、気持ちはどのあたり？</div>
+        <div class="chips" id="emoC">
+          <button class="chip" onclick="pick(this,'emo')">しんどい</button>
+          <button class="chip" onclick="pick(this,'emo')">もやもや</button>
+          <button class="chip" onclick="pick(this,'emo')">まあまあ</button>
+          <button class="chip" onclick="pick(this,'emo')">穏やか</button>
+          <button class="chip" onclick="pick(this,'emo')">元気</button>
+        </div>
+        <hr class="divider">
+        <div class="mood-q" style="margin-bottom:8px;">今日ここに来た自分に、ひとこと</div>
+        <textarea id="cin" placeholder="「よく来たね」「今日もいるじゃん」…" rows="2"></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-next" onclick="gp(1)">次へ　→</button>
+      </div>
+    </div>
+
+    <!-- ── PHASE 1: Honne ── -->
+    <div class="phase" id="p1">
+      <div class="phase-head">
+        <div class="phase-season">本音を探る</div>
+        <div class="phase-title">葉の裏側にある声</div>
+        <div class="phase-desc">うまく書かなくていい。整えなくていい。ただ正直に、森の中に吐き出すように。</div>
+      </div>
+
+      <div class="card">
+        <div class="card-num">— 01 —</div>
+        <div class="card-q">今日、本当はどんな気持ちを感じていた？</div>
+        <div class="card-hint">評価せずに、ただ書いてみる</div>
+        <textarea id="h1" placeholder="ただただ疲れてた。誰にも気を遣いたくなかった…" rows="4"></textarea>
+      </div>
+
+      <div class="card">
+        <div class="card-num">— 02 —</div>
+        <div class="card-q">その気持ちの奥に、本当は何を求めていた？</div>
+        <div class="card-hint">休息？認められること？自由？つながり？安心？</div>
+        <textarea id="h2" placeholder="本当は…" rows="3"></textarea>
+      </div>
+
+      <div class="card">
+        <div class="card-num">— 03 —</div>
+        <div class="card-q">そのニーズは、自然で正当なものだと思う？</div>
+        <div class="card-hint">「そう思う」でも「まだわからない」でも、正直に</div>
+        <textarea id="h3" placeholder="うん、そう思う。なぜなら…" rows="3"></textarea>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-back" onclick="gp(0)">←</button>
+        <button class="btn btn-next" onclick="gp(2)">次へ　→</button>
+      </div>
+    </div>
+
+    <!-- ── PHASE 2: Self-acceptance ── -->
+    <div class="phase" id="p2">
+      <div class="phase-head">
+        <div class="phase-season">自分を認める</div>
+        <div class="phase-title">根はちゃんと、ここにある</div>
+        <div class="phase-desc">どんな一日でも。根拠なしでいい。脳は言葉を現実だと思い込む。</div>
+      </div>
+
+      <!-- ① 今日の自己宣言 -->
+      <div class="card">
+        <div class="section-badge">① 今日の自己宣言</div>
+        <div class="card-hint" style="margin-bottom:12px;">根拠なしでOK。脳は言葉を現実として受け取る。</div>
+        <div class="chips" id="affirmC">
+          <button class="chip" onclick="pickAffirm(this)">今日もよくやってる</button>
+          <button class="chip" onclick="pickAffirm(this)">私えらい</button>
+          <button class="chip" onclick="pickAffirm(this)">そのままで大丈夫</button>
+        </div>
+        <div style="margin-top:10px;">
+          <textarea id="affirmFree" placeholder="自分の言葉で言うなら…（なんでも）" rows="2"></textarea>
+        </div>
+        <div class="affirm-display" id="affirmDisplay" style="display:none;">
+          <div class="affirm-text" id="affirmText"></div>
+        </div>
+      </div>
+
+      <!-- ② ツイてる -->
+      <div class="card">
+        <div class="section-badge">② 今日の「ツイてる」</div>
+        <div class="card-hint" style="margin-bottom:10px;">小さいことでOK。いいことを探す脳に変えていく。</div>
+        <div class="tsuite-examples">
+          <span class="eg-chip">電車座れた</span>
+          <span class="eg-chip">天気よかった</span>
+          <span class="eg-chip">コーヒー美味しかった</span>
+        </div>
+        <textarea id="tsuite" placeholder="今日ツイてたこと…（小さくていい）" rows="2" style="margin-top:10px;"></textarea>
+      </div>
+
+      <!-- ③ 嫌なこと→意味づけ変換 -->
+      <div class="card">
+        <div class="section-badge">③ 嫌なこと → 意味づけ変換</div>
+        <div class="card-hint" style="margin-bottom:10px;">無理やりポジティブじゃなくていい。「少しだけ前向きな解釈を足す」くらいで。</div>
+        <div class="convert-row">
+          <div class="convert-box">
+            <div class="convert-label">あったこと（任意）</div>
+            <textarea id="badEvent" placeholder="既読スルーされた、嫌な言い方された…" rows="2"></textarea>
+          </div>
+          <div class="convert-arrow">→</div>
+          <div class="convert-box">
+            <div class="convert-label">意味づけ変換</div>
+            <textarea id="reframe" placeholder="自分の気持ちに気づけたからツイてる、自分の大事なラインがわかってきた…" rows="2"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- ④ 自分への優しい一言 -->
+      <div class="card">
+        <div class="section-badge">④ 自分への優しい一言</div>
+        <div class="card-hint" style="margin-bottom:10px;">モヤっとした自分に。地味だけど、かなり効く。</div>
+        <div class="chips" id="kindC">
+          <button class="chip" onclick="pickKind(this)">そりゃ嫌だよね</button>
+          <button class="chip" onclick="pickKind(this)">よく我慢してるよ</button>
+          <button class="chip" onclick="pickKind(this)">ちゃんと感じててえらい</button>
+        </div>
+        <textarea id="kindFree" placeholder="自分の言葉で…" rows="2" style="margin-top:10px;"></textarea>
+      </div>
+
+      <!-- ⑤ できたこと3つ -->
+      <div class="card">
+        <div class="section-badge">⑤ できたこと 3つ</div>
+        <div class="card-hint" style="margin-bottom:10px;">しょぼくてOK。むしろその方が続く。</div>
+        <div class="did-rows">
+          <div class="did-row">
+            <div class="did-num">1</div>
+            <input class="did-input" id="did1" type="text" placeholder="起きた、返信した、仕事行った…">
+          </div>
+          <div class="did-row">
+            <div class="did-num">2</div>
+            <input class="did-input" id="did2" type="text" placeholder="ご飯食べた、外に出た…">
+          </div>
+          <div class="did-row">
+            <div class="did-num">3</div>
+            <input class="did-input" id="did3" type="text" placeholder="このワークをした、など">
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-back" onclick="gp(1)">←</button>
+        <button class="btn btn-next" onclick="gp(3)">次へ　→</button>
+      </div>
+    </div>
+
+    <!-- ── PHASE 3: Close ── -->
+    <div class="phase" id="p3">
+      <div class="phase-head">
+        <div class="phase-season">クローズ</div>
+        <div class="phase-title">今日という一日を閉じる</div>
+        <div class="phase-desc">明日の自分へ、ひとつだけ渡してあげる種を。</div>
+      </div>
+
+      <div class="card">
+        <div class="card-q" style="margin-bottom:8px;">明日に持ち帰る、ひとつの気づき</div>
+        <textarea id="take" placeholder="「焦らなくていい」「自分の感覚を信じていい」…" rows="3"></textarea>
+      </div>
+
+      <div class="card">
+        <div class="card-q" style="margin-bottom:12px;">今日の自分を労うスコア</div>
+        <div class="score-wrap">
+          <input type="range" min="1" max="10" value="7" id="scoreR" oninput="updScore(this.value)" style="--p:70%">
+          <div class="score-num" id="scoreV">7</div>
+        </div>
+      </div>
+
+      <button class="btn btn-next" style="width:100%;border-radius:12px;padding:14px;font-size:15px;margin-top:0.5rem" onclick="finish()">
+        今日のワークを完了する
+      </button>
+
+      <!-- ── 親友の声かけ ── -->
+      <div id="done" style="display:none;margin-top:2rem">
+
+        <!-- Leaf animation -->
+        <div style="text-align:center;margin-bottom:1.5rem;">
+          <svg class="leaf-icon" viewBox="0 0 70 70" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="35" cy="35" r="32" fill="rgba(212,232,208,0.6)"/>
+            <path d="M35 52 C35 52 18 38 20 24 C22 12 35 14 35 14 C35 14 48 12 50 24 C52 38 35 52 35 52Z" fill="#4A7C59" opacity="0.85">
+              <animateTransform attributeName="transform" type="rotate" from="-3 35 35" to="3 35 35" dur="3s" repeatCount="indefinite" additive="sum"/>
+            </path>
+            <line x1="35" y1="14" x2="35" y2="52" stroke="rgba(255,255,255,0.5)" stroke-width="1.2"/>
+            <path d="M35 24 Q29 30 27 38" stroke="rgba(255,255,255,0.4)" stroke-width="1" fill="none"/>
+            <path d="M35 24 Q41 30 43 38" stroke="rgba(255,255,255,0.4)" stroke-width="1" fill="none"/>
+          </svg>
+        </div>
+
+        <!-- 自分から自分への声かけ -->
+        <div class="bf-letter-wrap">
+          <div class="bf-label">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            今日のあなたへ
+          </div>
+          <div class="bf-hint">— 少し距離を置いて、自分を見てみる。声に出して読むと、もっと届く。</div>
+          <div class="bf-letter" id="bfLetter">
+            <div class="bf-loading" id="bfLoading">
+              <div class="bf-dot"></div><div class="bf-dot"></div><div class="bf-dot"></div>
+            </div>
+            <div class="bf-text" id="bfText" style="display:none;"></div>
+          </div>
+          <div class="bf-edit-row" id="bfEditRow" style="display:none;">
+            <textarea class="bf-edit-area" id="bfEditArea" rows="6"></textarea>
+            <button class="bf-edit-btn" onclick="saveBfEdit()">この言葉を今日のものにする</button>
+          </div>
+          <button class="bf-toggle" id="bfToggle" style="display:none;" onclick="toggleBfEdit()">✏️ 自分の言葉に書き直す</button>
+        </div>
+
+        <!-- Streak -->
+        <div style="text-align:center;margin:1.5rem 0 0.5rem;">
+          <div class="streak-row" id="sdots"></div>
+          <div class="streak-label" id="slabel"></div>
+        </div>
+
+        <div class="sheet-ok" id="shOk" style="display:none;margin-bottom:1rem;"></div>
+
+        <div class="action-grid">
+          <button class="action-btn" onclick="deepDive()">
+            <div class="action-icon">🍃</div>
+            <div class="action-text">今日の気づきを<br>深掘りする</div>
+          </button>
+          <button class="action-btn" onclick="openSS()">
+            <div class="action-icon">📋</div>
+            <div class="action-text">スプレッドシートで<br>記録を振り返る</div>
+          </button>
+        </div>
+      </div>
+
+      <div class="btn-row" id="backRow3">
+        <button class="btn btn-back" onclick="gp(2)">←</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Overlay -->
+<div class="overlay" id="ov">
+  <div class="spinner"></div>
+  <div class="overlay-txt">スプレッドシートに記録しています…</div>
+</div>
+
+<script>
+// ── State ──
+const D = {
+  body:'', emo:'', cin:'',
+  h1:'', h2:'', h3:'',
+  affirm:'', affirmFree:'',
+  tsuite:'',
+  badEvent:'', reframe:'',
+  kind:'', kindFree:'',
+  did1:'', did2:'', did3:'',
+  take:'', score:7
+};
+
+let sheetUrl = localStorage.getItem('hnSheetUrl') || '';
+let t0 = Date.now();
+let cur = 0;
+
+// ── Init ──
+(function init(){
+  // Date
+  const d = new Date();
+  const wd = ['日','月','火','水','木','金','土'];
+  document.getElementById('dateTxt').textContent =
+    d.getFullYear() + '/' + String(d.getMonth()+1).padStart(2,'0') + '/' +
+    String(d.getDate()).padStart(2,'0') + '（' + wd[d.getDay()] + '）';
+
+  // Timer
+  setInterval(()=>{
+    const s = Math.floor((Date.now()-t0)/1000);
+    document.getElementById('timerTxt').textContent =
+      Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+  }, 1000);
+
+  // Restore URL
+  if(sheetUrl){
+    document.getElementById('sheetUrl').value = sheetUrl;
+    setSt('ok','✓ 連携済み');
+  }
+})();
+
+// ── Navigation ──
+function gp(n){
+  [0,1,2,3].forEach(i=>{
+    document.getElementById('p'+i).classList.toggle('on', i===n);
+    const step = document.querySelector('[data-i="'+i+'"]');
+    const dot  = document.getElementById('pd'+i);
+    step.classList.remove('active','done');
+    if(i===n)   step.classList.add('active');
+    if(i<n)     { step.classList.add('done'); dot.textContent='✓'; }
+    if(i>=n)    dot.textContent = ['一','二','三','四'][i];
+  });
+  cur = n;
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+// ── Chips ──
+function pick(el, g){
+  document.querySelectorAll('#'+g+'C .chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  D[g] = el.textContent;
+}
+
+// ── Affirmation chip ──
+function pickAffirm(el){
+  document.querySelectorAll('#affirmC .chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  D.affirm = el.textContent;
+  const disp = document.getElementById('affirmDisplay');
+  const txt  = document.getElementById('affirmText');
+  disp.style.display = 'block';
+  txt.textContent = '「' + D.affirm + '」';
+}
+
+// ── Kind chip ──
+function pickKind(el){
+  document.querySelectorAll('#kindC .chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  D.kind = el.textContent;
+}
+
+
+function tog(row){
+  const b = row.querySelector('.cbox');
+  const l = row.querySelector('.clabel');
+  b.classList.toggle('on');
+  l.classList.toggle('done');
+}
+
+// ── Score ──
+function updScore(v){
+  document.getElementById('scoreV').textContent = v;
+  D.score = +v;
+  document.getElementById('scoreR').style.setProperty('--p', ((v-1)/9*100).toFixed(0)+'%');
+}
+
+// ── Sheet test ──
+function setSt(type, msg){
+  const el = document.getElementById('connSt');
+  el.className = 'status ' + type;
+  el.textContent = msg;
+}
+
+async function testConn(){
+  const url = document.getElementById('sheetUrl').value.trim();
+  if(!url){ setSt('err','✗ URLを入力してください'); return; }
+  setSt('ok','確認中…');
+  try{
+    await fetch(url+'?test=1', {mode:'no-cors'});
+    localStorage.setItem('hnSheetUrl', url);
+    sheetUrl = url;
+    setSt('ok','✓ 接続できました');
+  } catch(e){ setSt('err','✗ エラー。URLを確認してください'); }
+}
+
+// ── Finish ──
+async function finish(){
+  D.cin       = document.getElementById('cin').value;
+  D.h1        = document.getElementById('h1').value;
+  D.h2        = document.getElementById('h2').value;
+  D.h3        = document.getElementById('h3').value;
+  D.affirmFree= document.getElementById('affirmFree').value;
+  D.tsuite    = document.getElementById('tsuite').value;
+  D.badEvent  = document.getElementById('badEvent').value;
+  D.reframe   = document.getElementById('reframe').value;
+  D.kindFree  = document.getElementById('kindFree').value;
+  D.did1      = document.getElementById('did1').value;
+  D.did2      = document.getElementById('did2').value;
+  D.did3      = document.getElementById('did3').value;
+  D.take      = document.getElementById('take').value;
+  D.score     = +document.getElementById('scoreR').value;
+
+  const mins = Math.floor((Date.now()-t0)/60000);
+
+  document.getElementById('done').style.display = 'block';
+  document.getElementById('backRow3').style.display = 'none';
+
+  // 親友の声かけ生成
+  genBFLetter(D);
+
+  // Streak
+  const streak = (+localStorage.getItem('hnStreak')||0) + 1;
+  localStorage.setItem('hnStreak', streak);
+  const wrap = document.getElementById('sdots');
+  const show = Math.min(streak, 21);
+  for(let i=0;i<show;i++){
+    const d = document.createElement('div');
+    d.className = 'sdot';
+    wrap.appendChild(d);
+    setTimeout(()=>d.classList.add('on'), i*60+100);
+  }
+  document.getElementById('slabel').textContent = streak + '日連続で自分と向き合っている';
+
+  // Send to sheet
+  if(sheetUrl){
+    document.getElementById('ov').classList.add('on');
+    await sendRow(D, mins);
+    document.getElementById('ov').classList.remove('on');
+  }
+
+  window.scrollTo({top:9999, behavior:'smooth'});
+}
+
+// ── 自分から自分への声かけ生成（「あなたは」二人称）──
+function genBFLetter(d){
+  const dids   = [d.did1, d.did2, d.did3].filter(Boolean);
+  const affirm = d.affirm || d.affirmFree;
+  const tsuite = d.tsuite;
+  const reframe= d.reframe;
+  const honne  = d.h1;
+  const need   = d.h2;
+  const emo    = d.emo;
+  const score  = d.score;
+
+  const lines = [];
+
+  // オープニング — 今日という一日を、少し距離を置いて見渡す
+  const openers = [
+    'あなたは今日、自分と向き合う時間を作った。',
+    'あなたは今日、ちゃんとここに来た。',
+    'あなたは今日も、自分のことを大切にしようとした。',
+  ];
+  lines.push(openers[Math.floor(Math.random() * openers.length)]);
+
+  // できたこと — 事実として静かに届ける
+  if(dids.length > 0){
+    const didStr = dids.length === 1
+      ? dids[0]
+      : dids.slice(0,-1).join('、') + '、そして' + dids[dids.length-1];
+    lines.push('あなたは今日、' + didStr + 'ことができた。\nそれは、小さくない。');
+  } else {
+    lines.push('あなたはここに来るだけで、じゅうぶんよくやっている。');
+  }
+
+  // 本音 — 感じたことに気づけた自分を認める
+  if(honne){
+    const h = honne.slice(0,30) + (honne.length>30?'…':'');
+    lines.push('あなたは「' + h + '」という気持ちに、ちゃんと気づいていた。\n気づけること自体が、自分を大事にしている証拠だよ。');
+  } else {
+    lines.push('あなたは今日、自分の気持ちに正直でいようとした。\nそれだけで、もう十分えらい。');
+  }
+
+  // ニーズ — 求めていたものを否定しない
+  if(need){
+    const n = need.slice(0,28) + (need.length>28?'…':'');
+    lines.push('「' + n + '」を求めていたこと、\nそれはあなたにとって自然で正当なニーズだ。');
+  }
+
+  // ツイてる — いいことを見つけられる目を認める
+  if(tsuite){
+    const t = tsuite.slice(0,24) + (tsuite.length>24?'…':'');
+    lines.push('あなたは今日、「' + t + '」をツイてると感じられた。\nそういうものを見つけられる目が、あなたにはある。');
+  }
+
+  // 意味づけ変換 — 捉え直せた強さを映す
+  if(reframe){
+    const r = reframe.slice(0,30) + (reframe.length>30?'…':'');
+    lines.push('あなたは「' + r + '」と捉え直した。\n無理なポジティブじゃない。それが、あなたの本当の強さ。');
+  }
+
+  // 自己宣言 — 言葉を脳に届ける
+  if(affirm){
+    lines.push('あなたは今日、「' + affirm + '」と言った。\nその言葉は、ちゃんと届いている。本当のことだから。');
+  }
+
+  // スコア — 労いをそのまま受け取らせる
+  const scoreMsg =
+    score >= 8 ? 'あなたは今日の自分に' + score + '点をあげた。\nその評価を、そのまま受け取っていい。' :
+    score >= 5 ? 'あなたは今日の自分に' + score + '点をあげた。\nそれで十分。本当に、よくやった。' :
+                 'あなたは今日の自分に' + score + '点をあげた。\nそれでもここに来た。それだけで、もう合格だよ。';
+  lines.push(scoreMsg);
+
+  // クロージング — 自分が自分の一番の親友
+  const closers = [
+    'あなたの一番の親友は、あなた自身だ。\nおやすみなさい。',
+    'あなたはずっと、あなたのそばにいる。\n今夜もゆっくり休んで。',
+    'あなたはあなたのことを、少しずつ好きになっている。\nそれでいい。おやすみ。',
+  ];
+  lines.push(closers[Math.floor(Math.random() * closers.length)]);
+
+  const full = lines.join('\n\n');
+
+  setTimeout(()=>{
+    document.getElementById('bfLoading').style.display = 'none';
+    const el = document.getElementById('bfText');
+    el.style.display = 'block';
+    typeWriter(el, full, 0, ()=>{
+      document.getElementById('bfToggle').style.display = 'block';
+      document.getElementById('bfEditArea').value = full;
+    });
+  }, 1000);
+}
+
+let bfEditOpen = false;
+function toggleBfEdit(){
+  bfEditOpen = !bfEditOpen;
+  const editRow = document.getElementById('bfEditRow');
+  const textEl  = document.getElementById('bfText');
+  const toggle  = document.getElementById('bfToggle');
+  if(bfEditOpen){
+    textEl.style.display  = 'none';
+    editRow.style.display = 'block';
+    toggle.textContent    = '← 戻る';
+  } else {
+    textEl.style.display  = 'block';
+    editRow.style.display = 'none';
+    toggle.textContent    = '✏️ 自分の言葉に書き直す';
+  }
+}
+
+function saveBfEdit(){
+  const val = document.getElementById('bfEditArea').value;
+  const el  = document.getElementById('bfText');
+  el.innerHTML = val.replace(/\n/g,'<br>');
+  bfEditOpen = false;
+  document.getElementById('bfEditRow').style.display = 'none';
+  el.style.display = 'block';
+  document.getElementById('bfToggle').textContent = '✏️ 自分の言葉に書き直す';
+}
+
+function typeWriter(el, text, i, onDone){
+  if(i <= text.length){
+    el.innerHTML = text.slice(0,i).replace(/\n/g,'<br>');
+    setTimeout(()=>typeWriter(el, text, i+1, onDone), 16);
+  } else if(onDone){
+    onDone();
+  }
+}
+
+async function sendRow(data, mins){
+  const now = new Date();
+  const row = {
+    date:         now.toLocaleDateString('ja-JP'),
+    time:         now.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'}),
+    body:         data.body,
+    emotion:      data.emo,
+    checkin_note: data.cin,
+    honne1:       data.h1,
+    honne2:       data.h2,
+    honne3:       data.h3,
+    affirm:       data.affirm || data.affirmFree,
+    tsuite:       data.tsuite,
+    bad_event:    data.badEvent,
+    reframe:      data.reframe,
+    kind_word:    data.kind || data.kindFree,
+    did1:         data.did1,
+    did2:         data.did2,
+    did3:         data.did3,
+    takeaway:     data.take,
+    score:        data.score,
+    minutes:      mins
+  };
+  try{
+    await fetch(sheetUrl, {
+      method:'POST', mode:'no-cors',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(row)
+    });
+    const el = document.getElementById('shOk');
+    el.style.display = 'block';
+    el.textContent = '✓ ' + row.date + ' の記録をスプレッドシートに保存しました';
+  } catch(e){
+    const el = document.getElementById('shOk');
+    el.style.display = 'block';
+    el.style.background = '#fdecea';
+    el.style.borderColor = 'rgba(192,57,43,0.2)';
+    el.style.color = '#c0392b';
+    el.textContent = '記録に失敗しました。URLを確認してください。';
+  }
+}
+
+function deepDive(){
+  const msg = '今日のワークで気づいたことを深掘りしたい。\n体の感覚:' + D.body +
+    ' 気持ち:' + D.emo + '\n本音:' + D.h1 + '\n求めていたもの:' + D.h2;
+  if(window.parent && window.parent.sendPrompt) window.parent.sendPrompt(msg);
+}
+
+function openSS(){
+  window.open('https://docs.google.com/spreadsheets', '_blank');
+}
+
+// ── Service Worker（PWA・オフライン対応）──
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./service-worker.js')
+      .then(()=>console.log('SW registered'))
+      .catch(e=>console.log('SW error:', e));
+  });
+}
+</script>
+</body>
+</html>
